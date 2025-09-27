@@ -1,0 +1,4 @@
+playwright
+python-telegram-bot==20.4
+nest_asyncio
+requests
