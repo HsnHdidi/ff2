@@ -38,7 +38,8 @@ async def scrape_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Usage: /scrape <Name>")
         return
 
-    search_name = context.args[0]
+    # ✅ Join all arguments into one search string
+    search_name = " ".join(context.args).strip()
     await update.message.reply_text(f"Searching for exact match: '{search_name}'...")
 
     rooms, search_name = await scrape_and_search(search_name)
