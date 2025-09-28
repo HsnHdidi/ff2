@@ -9,7 +9,7 @@ url = "https://www.free4talk.com/"
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-async def scrape_and_search(search_name: str):
+async def scrape_and_search(search_names: list):  # CHANGED: parameter to list
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
@@ -30,31 +30,37 @@ async def scrape_and_search(search_name: str):
         }""")
 
         await browser.close()
-        return rooms_data, search_name
+        return rooms_data, search_names  # CHANGED: return list
 
 
 async def scrape_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) == 0:
-        await update.message.reply_text("Usage: /scrape <Name>")
+        await update.message.reply_text("Usage: /scrape <Name1>; <Name2>; <Name3>")
         return
 
-    # ✅ Join all arguments into one search string
-    search_name = " ".join(context.args).strip()
-    await update.message.reply_text(f"Searching for exact match: '{search_name}'...")
+    # CHANGED: Parse names separated by semicolons
+    input_text = " ".join(context.args)
+    search_names = [name.strip() for name in input_text.split(";") if name.strip()]
+    
+    await update.message.reply_text(f"Searching for: {', '.join(search_names)}...")
 
-    rooms, search_name = await scrape_and_search(search_name)
+    rooms, search_names = await scrape_and_search(search_names)
 
+    # CHANGED: Search for multiple names
     matches = []
     for room in rooms:
-        if any(member and member.strip() == search_name for member in room["members"]):
-            matches.append(room)
+        # Check if ANY of the search names match ANY member in the room
+        for search_name in search_names:
+            if any(member and member.strip() == search_name for member in room["members"]):
+                matches.append(room)
+                break  # No need to check other names for this room
 
     if matches:
-        msg = f"Found {len(matches)} room(s) for '{search_name}':\n"
+        msg = f"Found {len(matches)} room(s) for the searched names:\n"
         for match in matches:
             msg += f"\nTitle: {match['title']}\nMembers: {', '.join([i for i in match['members'] if i])}\nStatus: {match['status']}\n"
     else:
-        msg = f"No matches found for '{search_name}'."
+        msg = f"No matches found for: {', '.join(search_names)}"
 
     await update.message.reply_text(msg)
 
